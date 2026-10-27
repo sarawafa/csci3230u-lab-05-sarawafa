@@ -42,6 +42,29 @@ const paletteEl = document.getElementById('palette')
  */
 function renderBoard() {
   // TODO
+  boardEl.innerHTML = ''
+
+  for (let r = 0; r < 9; r++) {
+    const tr = document.createElement('tr')
+    for (let c = 0; c < 9; c++) {
+      const td = document.createElement('td')
+      td.id = `cell-${r}-${c}`
+
+      const val = getCell(board, r, c)
+      td.textContent = val === EMPTY ? '' : val
+
+      // If cell was empty in starting puzzle but is filled now, style as user input
+      if (getCell(SAMPLE_BOARD, r, c) === EMPTY && val !== EMPTY) {
+        td.classList.add('user-input')
+      }
+
+      td.addEventListener('click', () => placeAt(r, c))
+      tr.appendChild(td)
+    }
+    boardEl.appendChild(tr)
+  }
+
+  highlightConflicts()
 }
 
 /**
@@ -51,6 +74,15 @@ function renderBoard() {
  */
 function highlightConflicts() {
   // TODO
+  for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const td = document.getElementById(`cell-${r}-${c}`)
+        if (td) {
+          const conflicts = findConflicts(board, r, c)
+          td.classList.toggle('error', conflicts.length > 0)
+        }
+      }
+    }
 }
 
 /**
@@ -63,6 +95,30 @@ function highlightConflicts() {
  */
 function renderPalette() {
   // TODO
+  paletteEl.innerHTML = ''
+    const tr = document.createElement('tr')
+
+    // Digits 1 through 9
+    for (let d = 1; d <= 9; d++) {
+      const td = document.createElement('td')
+      td.textContent = d
+      if (activeDigit === d) {
+        td.classList.add('active')
+      }
+      td.addEventListener('click', () => selectDigit(d))
+      tr.appendChild(td)
+    }
+
+    // Undo button
+    const undoTd = document.createElement('td')
+    const undoImg = document.createElement('img')
+    undoImg.src = '/images/undo.png'
+    undoImg.alt = 'Undo'
+    undoTd.appendChild(undoImg)
+    undoTd.addEventListener('click', () => undo())
+    tr.appendChild(undoTd)
+
+    paletteEl.appendChild(tr)
 }
 
 // ---- interaction ----------------------------------------------------
@@ -73,6 +129,16 @@ function renderPalette() {
  */
 function selectDigit(digit) {
   // TODO
+  activeDigit = digit
+
+   // Highlight selected palette cell and deactivate others
+   const cells = paletteEl.querySelectorAll('td')
+   cells.forEach((td, index) => {
+      // Digits 1-9 correspond to index 0-8
+      if (index < 9) {
+        td.classList.toggle('active', index + 1 === digit)
+      }
+    })
 }
 
 /**
@@ -85,11 +151,31 @@ function selectDigit(digit) {
  */
 function placeAt(row, col) {
   // TODO
+  if (activeDigit === null) return
+
+     // Do not overwrite given clues
+     if (getCell(SAMPLE_BOARD, row, col) !== EMPTY) return
+
+     // Push previous state onto history stack
+     history.push(board)
+
+     // Update board state with new digit
+     board = setCell(board, row, col, activeDigit)
+
+     renderBoard()
+
+     if (isComplete(board)) {
+       celebrate()
+     }
 }
 
 /** Step back one move. TODO: if history isn't empty, pop into `board`, re-render. */
 function undo() {
   // TODO
+  if (history.length > 0) {
+      board = history.pop()
+      renderBoard()
+    }
 }
 
 // ---- finishing (done for you) ---------------------------------------
